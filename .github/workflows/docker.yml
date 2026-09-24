@@ -62,12 +62,26 @@ jobs:
       - name: docker compose up
         run: docker compose up --build --wait --wait-timeout 120
 
-      # Show each service's health for the log, and assert the published
-      # preview responds — end-to-end proof the composed stack serves.
-      - name: Confirm services healthy and preview serves
+      # Smoke check: assert EVERY service reports "healthy" (not just running),
+      # read from compose's own state, and fail loudly if any does not. This is
+      # the machine-checked "up healthy" gate — a service that starts but never
+      # passes its healthcheck fails here rather than slipping through.
+      - name: Smoke — every service reports healthy
         run: |
           docker compose ps
-          curl -fsS http://127.0.0.1:3000/ | grep -qi "design previews"
+          bad=$(docker compose ps --format '{{.Service}} {{.Health}}' \
+            | awk '$2 != "healthy" { print }')
+          if [ -n "$bad" ]; then
+            echo "Services not healthy:"
+            echo "$bad"
+            docker compose logs
+            exit 1
+          fi
+          echo "All services healthy."
+
+      # End-to-end: the published preview responds and serves the designs index.
+      - name: Confirm the preview serves
+        run: curl -fsS http://127.0.0.1:3000/ | grep -qi "design previews"
 
       - name: Tear down
         if: always()
