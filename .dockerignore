@@ -1,0 +1,15 @@
+# Keep host state and dependency dirs out of the Docker build context so the
+# image builds identically from a clean checkout regardless of the host.
+.git
+.gitignore
+node_modules
+.env
+.env.*
+!.env.example
+.DS_Store
+Thumbs.db
+*.swp
+
+# The build recipe itself does not need to be in the image.
+Dockerfile
+.dockerignore
