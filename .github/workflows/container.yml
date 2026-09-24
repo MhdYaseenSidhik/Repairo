@@ -1,0 +1,61 @@
+name: Container
+
+# CI only lints Markdown (see lint.yml), so the Dockerfile and compose file
+# have never been build-verified. This workflow proves them on every push and
+# pull request — GitHub's ubuntu-latest runner ships Docker, Buildx and
+# Compose v2, which the agent sandbox does not have.
+#
+# It is deliberately guarded: it validates the compose schema and builds the
+# image ONLY when those files are present on the ref, so it is a clean skip on
+# docs-only branches (e.g. main today) instead of a spurious failure.
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+jobs:
+  compose-build:
+    name: Validate compose & build image
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # Resolve which compose file (if any) this ref carries. Compose reads
+      # both names; support either so the job is correct whichever the repo
+      # settles on.
+      - name: Detect compose file
+        id: detect
+        run: |
+          if [ -f compose.yaml ]; then
+            echo "file=compose.yaml" >> "$GITHUB_OUTPUT"
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          elif [ -f compose.yml ]; then
+            echo "file=compose.yml" >> "$GITHUB_OUTPUT"
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          elif [ -f docker-compose.yaml ]; then
+            echo "file=docker-compose.yaml" >> "$GITHUB_OUTPUT"
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          elif [ -f docker-compose.yml ]; then
+            echo "file=docker-compose.yml" >> "$GITHUB_OUTPUT"
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "present=false" >> "$GITHUB_OUTPUT"
+            echo "No compose file on this ref — nothing to build. Skipping."
+          fi
+
+      - name: Set up Buildx
+        if: steps.detect.outputs.present == 'true'
+        uses: docker/setup-buildx-action@v3
+
+      # Fails on an invalid schema or an unresolvable reference — cheap and fast.
+      - name: Validate compose config
+        if: steps.detect.outputs.present == 'true'
+        run: docker compose -f "${{ steps.detect.outputs.file }}" config
+
+      # The real proof: the image builds from a clean checkout. The compose
+      # `docs` service builds from the repo Dockerfile, so this exercises it.
+      - name: Build the stack
+        if: steps.detect.outputs.present == 'true'
+        run: docker compose -f "${{ steps.detect.outputs.file }}" build

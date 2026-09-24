@@ -1,0 +1,94 @@
+# Repairo — full-stack compose file.
+#
+# One command brings the system up so a reviewer runs it rather than reads
+# about it:
+#
+#     docker compose up --build
+#
+# then open http://localhost:3000 (or $PORT). Compose waits for the service
+# to report healthy via the container HEALTHCHECK before considering the
+# stack "up".
+#
+# SCOPE — read before adding services. Repairo is a DOCUMENTATION repository
+# (see README.md): its only runnable surface is the docs HTTP server built by
+# the sibling Dockerfile. It has no database, cache or queue because nothing
+# in the repository connects to one. This file therefore composes the one
+# real service honestly rather than standing up backing services that do
+# nothing. The `depends_on: condition: service_healthy` pattern and the named
+# volume/network below are the wiring a real backing service would slot into;
+# a commented, ready-to-fill `db` block at the foot shows exactly how, so the
+# stack grows without being rediscovered.
+
+name: repairo
+
+services:
+  docs:
+    build:
+      # Build from the repo's existing multi-stage Dockerfile. Its `lint`
+      # stage runs the real CI gate (markdownlint) at build time, so a broken
+      # doc fails `compose up --build`.
+      context: .
+      dockerfile: Dockerfile
+      # Kept in sync with the Dockerfile's own default; override to move Node.
+      args:
+        NODE_IMAGE: node:20.17.0-bookworm-slim@sha256:2394e403d45a644e41ac2a15b6f843a7d4a99ad24be48c27982c5fdc61a1ef17
+    image: repairo-docs:local
+    # PORT is read by docker/serve.js; default 3000. Copy .env.example to .env
+    # to change it. `${PORT:-3000}` keeps the mapping and the app in step.
+    environment:
+      PORT: ${PORT:-3000}
+    ports:
+      - "${PORT:-3000}:${PORT:-3000}"
+    # Reuse the image's own HEALTHCHECK verbatim rather than defining a second,
+    # divergent one — Compose surfaces its status and gates dependents on it.
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "require('http').get('http://127.0.0.1:'+(process.env.PORT||3000)+'/',r=>process.exit(r.statusCode<400?0:1)).on('error',()=>process.exit(1))"
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
+    restart: unless-stopped
+    networks:
+      - repairo
+
+# A private network so services address each other by name once there is more
+# than one. Declared now so adding a service is a one-line change, not a
+# refactor.
+networks:
+  repairo:
+    driver: bridge
+
+# ---------------------------------------------------------------------------
+# When a backing service is genuinely needed, uncomment and adapt. This is the
+# canonical shape: a healthchecked dependency, `docs` waiting for it to be
+# healthy before starting, and a named volume for durable state. Do NOT
+# uncomment speculatively — an idle Postgres is cost, not a feature.
+# ---------------------------------------------------------------------------
+# volumes:
+#   db-data:
+#
+# services:
+#   db:
+#     image: postgres:16.4-bookworm
+#     environment:
+#       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+#       POSTGRES_DB: repairo
+#     volumes:
+#       - db-data:/var/lib/postgresql/data
+#     healthcheck:
+#       test: ["CMD-SHELL", "pg_isready -U postgres -d repairo"]
+#       interval: 10s
+#       timeout: 5s
+#       retries: 5
+#       start_period: 10s
+#     networks:
+#       - repairo
+#
+#   docs:
+#     depends_on:
+#       db:
+#         condition: service_healthy
