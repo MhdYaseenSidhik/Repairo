@@ -1,0 +1,44 @@
+name: Docker
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+jobs:
+  build:
+    name: Build image and run the lint gate inside it
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # Build every stage. The lint stage runs `npm run lint` at build time,
+      # so a build that succeeds is proof the Markdown gate passed inside the
+      # image — dev/prod parity with the Lint workflow.
+      - name: Build image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          load: true
+          tags: repairo-docs:ci
+
+      # Prove the runtime image actually serves the designs/ preview: start it,
+      # wait for the container to report healthy via its own HEALTHCHECK, and
+      # fail the job if it does not come up.
+      - name: Verify the runtime image serves
+        run: |
+          docker run -d --name repairo-docs -p 3000:3000 repairo-docs:ci
+          for i in $(seq 1 30); do
+            status=$(docker inspect -f '{{.State.Health.Status}}' repairo-docs 2>/dev/null || echo starting)
+            echo "health: $status"
+            [ "$status" = "healthy" ] && break
+            [ "$status" = "unhealthy" ] && { docker logs repairo-docs; exit 1; }
+            sleep 2
+          done
+          [ "$(docker inspect -f '{{.State.Health.Status}}' repairo-docs)" = "healthy" ]
+          curl -fsS http://127.0.0.1:3000/ | grep -qi "design previews"
+          docker rm -f repairo-docs
