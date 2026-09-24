@@ -1,6 +1,8 @@
-# Project brief — Minimalistic modern family home, Kerala
+# Project brief (intake note) — Minimalistic modern family home, Kerala
 
-> **Status:** initial brief captured from the commander. To be refined with the design team.
+> **Status:** initial intake note. **Superseded by the formal brief in
+> [`BRIEF.md`](BRIEF.md)**, which is the authoritative requirements document and carries the
+> acceptance criteria. This note is kept for the record of the original ask.
 
 ## The ask
 
