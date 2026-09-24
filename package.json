@@ -11,7 +11,7 @@
     "lint": "markdownlint-cli2 \"**/*.md\"",
     "serve": "node docker/serve.js"
   },
-  "devDependencies": {
+  "dependencies": {
     "markdownlint-cli2": "0.14.0"
   }
 }
