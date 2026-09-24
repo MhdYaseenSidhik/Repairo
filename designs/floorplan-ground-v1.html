@@ -1,0 +1,42 @@
+<!doctype html><html><head><meta charset="utf-8"><title>diagram</title><style>html,body{margin:0;padding:16px;background:#ffffff;color:#111}svg{max-width:100%}</style></head><body><pre class="mermaid">flowchart LR
+  subgraph HOUSE["Ground Floor - approx 1900 sq ft single storey"]
+    direction LR
+    subgraph WEST["West wing - private"]
+      BR1["Primary Bedroom 13x14 + En-suite"]
+      BR2["Bedroom 2 11x12"]
+      BR3["Bedroom 3 11x12"]
+      BATH["Shared Bath + Powder"]
+    end
+    subgraph CORE["Central spine"]
+      COURT(("Courtyard 10x10 light + air"))
+      STUDY["Study / Pooja 8x8"]
+    end
+    subgraph EAST["East wing - social"]
+      LIV["Living 15x16 opens E verandah"]
+      DIN["Dining 12x12"]
+      KIT["Kitchen 10x12 N cross-vent"]
+      UTIL["Utility / Wash 6x8"]
+    end
+    VER["Verandah / Sit-out wraps E + N"]
+    PORCH["Car Porch"]
+  end
+  BR1 --- BATH
+  BR2 --- BATH
+  BR3 --- BATH
+  BR1 -.-> COURT
+  COURT --- STUDY
+  COURT --- LIV
+  LIV --- DIN
+  DIN --- KIT
+  KIT --- UTIL
+  LIV --- VER
+  DIN --- VER
+  VER --- PORCH
+  classDef priv fill:#e8f0e3,stroke:#5b7a4a,color:#1e2b16;
+  classDef soc fill:#e3edf5,stroke:#3f6f97,color:#12212e;
+  classDef core fill:#f5efe0,stroke:#a98a3f,color:#2e2712;
+  classDef out fill:#eef6ea,stroke:#6a8f57,color:#1e2b16;
+  class BR1,BR2,BR3,BATH priv;
+  class LIV,DIN,KIT,UTIL soc;
+  class COURT,STUDY core;
+  class VER,PORCH out;</pre><script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script><script>mermaid.initialize({ startOnLoad: true, theme: 'default', securityLevel: 'strict' });</script></body></html>
