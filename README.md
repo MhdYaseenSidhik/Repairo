@@ -8,8 +8,9 @@ Design and cost artifacts for a **minimalistic modern family home** — a reposi
 A modern, minimalistic house for a family of 5, set on 5 acres of village land in Kerala,
 designed to frame and celebrate the surrounding nature. Target build budget: **₹/$100k**.
 
-See [`docs/brief.md`](docs/brief.md) for the full brief and [`docs/budget.md`](docs/budget.md)
-for the cost plan.
+See [`docs/BRIEF.md`](docs/BRIEF.md) for the full design brief and requirements,
+[`docs/budget.md`](docs/budget.md) for the cost plan, and [`docs/brief.md`](docs/brief.md) for
+the original intake note.
 
 ## Repository layout
 
