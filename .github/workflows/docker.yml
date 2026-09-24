@@ -42,3 +42,33 @@ jobs:
           [ "$(docker inspect -f '{{.State.Health.Status}}' repairo-docs)" = "healthy" ]
           curl -fsS http://127.0.0.1:3000/ | grep -qi "design previews"
           docker rm -f repairo-docs
+
+  compose:
+    name: Bring the stack up with compose and assert healthy
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # Schema-validate the compose file before running anything. A malformed
+      # compose.yml fails here with a clear message rather than mid-up.
+      - name: Validate compose file
+        run: docker compose -f docker-compose.yml config
+
+      # The real deliverable: one command brings the system up. --wait blocks
+      # until every service with a healthcheck reports healthy (and fails the
+      # step if any becomes unhealthy or the timeout elapses), so a green step
+      # is proof `docker compose up` runs the system healthy.
+      - name: docker compose up
+        run: docker compose up --build --wait --wait-timeout 120
+
+      # Show each service's health for the log, and assert the published
+      # preview responds — end-to-end proof the composed stack serves.
+      - name: Confirm services healthy and preview serves
+        run: |
+          docker compose ps
+          curl -fsS http://127.0.0.1:3000/ | grep -qi "design previews"
+
+      - name: Tear down
+        if: always()
+        run: docker compose down -v
