@@ -1,0 +1,19 @@
+{
+  // markdownlint-cli2 configuration
+  // https://github.com/DavidAnson/markdownlint-cli2
+  "config": {
+    "default": true,
+    // Allow long lines — prose and tables wrap naturally.
+    "MD013": false,
+    // Allow inline HTML where needed.
+    "MD033": false,
+    // First line need not be a top-level heading in every file.
+    "MD041": false,
+    // Allow duplicate headings across different sections.
+    "MD024": { "siblings_only": true },
+    // Do not enforce a specific table pipe-spacing style.
+    "MD060": false
+  },
+  "globs": ["**/*.md"],
+  "ignores": ["node_modules/**"]
+}
