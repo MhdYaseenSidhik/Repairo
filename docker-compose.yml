@@ -1,0 +1,91 @@
+# Repairo — full-stack Compose file.
+#
+# One command brings the system up:
+#
+#     docker compose up --build
+#
+# Repairo is a documentation repository (see README.md). The "stack" for the
+# preview / lint-gate workflow is a single real service, `docs`, built from the
+# multi-stage Dockerfile on this branch: its `lint` stage runs the Markdown gate
+# at build time, and its `runtime` stage serves the designs/ HTML preview over
+# HTTP. There is honestly no database, cache or queue behind it, so this file
+# composes only what actually exists — see the commented `db` block at the foot
+# for the healthchecked backing-service pattern to add one WITHOUT a refactor.
+
+services:
+  docs:
+    # Build the image from the Dockerfile on this branch (S-3). The base image
+    # is pinned by digest in the Dockerfile; NODE_IMAGE is passed through so the
+    # compose build and a plain `docker build` resolve to the identical base.
+    build:
+      context: .
+      args:
+        NODE_IMAGE: node:20.17.0-bookworm-slim@sha256:2394e403d45a644e41ac2a15b6f843a7d4a99ad24be48c27982c5fdc61a1ef17
+    image: repairo-docs:compose
+
+    # Configuration comes from the environment, not the compose file. .env.example
+    # is the checked-in template (git-ignored .env overrides it locally). PORT is
+    # the one knob the preview server reads; default 3000 if unset.
+    env_file:
+      - .env.example
+    environment:
+      PORT: ${PORT:-3000}
+
+    # Publish the preview server. Host port follows PORT so `docker compose up`
+    # and the URL agree; container port matches EXPOSE in the Dockerfile.
+    ports:
+      - "${PORT:-3000}:${PORT:-3000}"
+
+    # Reuse the image's own HEALTHCHECK contract verbatim, so `docker compose up`
+    # reports the service healthy/unhealthy and any future service can gate on it
+    # with `depends_on: condition: service_healthy`.
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "require('http').get('http://127.0.0.1:'+(process.env.PORT||3000)+'/',r=>process.exit(r.statusCode<400?0:1)).on('error',()=>process.exit(1))"
+      interval: 30s
+      timeout: 3s
+      start_period: 5s
+      retries: 3
+
+    restart: unless-stopped
+    networks:
+      - repairo
+
+networks:
+  repairo:
+    driver: bridge
+
+# ---------------------------------------------------------------------------
+# Adding a backing service later — the pattern, not a live service.
+#
+# Repairo has no database today, so none is composed (a service that nothing
+# uses is dead weight, and a fake one is a lie the health checks would expose).
+# When a real backing service is needed, add it here with its OWN healthcheck
+# and make `docs` wait for it to be healthy before starting:
+#
+#   services:
+#     db:
+#       image: postgres:16.4-bookworm
+#       environment:
+#         POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+#       volumes:
+#         - db-data:/var/lib/postgresql/data
+#       healthcheck:
+#         test: ["CMD-SHELL", "pg_isready -U postgres"]
+#         interval: 10s
+#         timeout: 5s
+#         retries: 5
+#         start_period: 10s
+#       networks: [repairo]
+#
+#     docs:
+#       depends_on:
+#         db:
+#           condition: service_healthy   # docs starts only once db is healthy
+#
+#   volumes:
+#     db-data:
+# ---------------------------------------------------------------------------
