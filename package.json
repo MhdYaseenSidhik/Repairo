@@ -1,0 +1,18 @@
+{
+  "name": "repairo-docs",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Tooling for the Repairo documentation repository: the Markdown lint gate and a static preview server for the designs/ HTML.",
+  "license": "UNLICENSED",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "lint": "markdownlint-cli2 \"**/*.md\"",
+    "test": "node --test test/",
+    "serve": "node docker/serve.js"
+  },
+  "dependencies": {
+    "markdownlint-cli2": "0.14.0"
+  }
+}

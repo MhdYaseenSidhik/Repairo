@@ -1,0 +1,88 @@
+name: Docker
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+jobs:
+  build:
+    name: Build image and run the lint gate inside it
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # Build every stage. The lint stage runs `npm run lint` at build time,
+      # so a build that succeeds is proof the Markdown gate passed inside the
+      # image — dev/prod parity with the Lint workflow.
+      - name: Build image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          load: true
+          tags: repairo-docs:ci
+
+      # Prove the runtime image actually serves the designs/ preview: start it,
+      # wait for the container to report healthy via its own HEALTHCHECK, and
+      # fail the job if it does not come up.
+      - name: Verify the runtime image serves
+        run: |
+          docker run -d --name repairo-docs -p 3000:3000 repairo-docs:ci
+          for i in $(seq 1 30); do
+            status=$(docker inspect -f '{{.State.Health.Status}}' repairo-docs 2>/dev/null || echo starting)
+            echo "health: $status"
+            [ "$status" = "healthy" ] && break
+            [ "$status" = "unhealthy" ] && { docker logs repairo-docs; exit 1; }
+            sleep 2
+          done
+          [ "$(docker inspect -f '{{.State.Health.Status}}' repairo-docs)" = "healthy" ]
+          curl -fsS http://127.0.0.1:3000/ | grep -qi "design previews"
+          docker rm -f repairo-docs
+
+  compose:
+    name: Bring the stack up with compose and assert healthy
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # Schema-validate the compose file before running anything. A malformed
+      # compose.yml fails here with a clear message rather than mid-up.
+      - name: Validate compose file
+        run: docker compose -f docker-compose.yml config
+
+      # The real deliverable: one command brings the system up. --wait blocks
+      # until every service with a healthcheck reports healthy (and fails the
+      # step if any becomes unhealthy or the timeout elapses), so a green step
+      # is proof `docker compose up` runs the system healthy.
+      - name: docker compose up
+        run: docker compose up --build --wait --wait-timeout 120
+
+      # Smoke check: assert EVERY service reports "healthy" (not just running),
+      # read from compose's own state, and fail loudly if any does not. This is
+      # the machine-checked "up healthy" gate — a service that starts but never
+      # passes its healthcheck fails here rather than slipping through.
+      - name: Smoke — every service reports healthy
+        run: |
+          docker compose ps
+          bad=$(docker compose ps --format '{{.Service}} {{.Health}}' \
+            | awk '$2 != "healthy" { print }')
+          if [ -n "$bad" ]; then
+            echo "Services not healthy:"
+            echo "$bad"
+            docker compose logs
+            exit 1
+          fi
+          echo "All services healthy."
+
+      # End-to-end: the published preview responds and serves the designs index.
+      - name: Confirm the preview serves
+        run: curl -fsS http://127.0.0.1:3000/ | grep -qi "design previews"
+
+      - name: Tear down
+        if: always()
+        run: docker compose down -v
