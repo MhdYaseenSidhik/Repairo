@@ -9,6 +9,7 @@
   },
   "scripts": {
     "lint": "markdownlint-cli2 \"**/*.md\"",
+    "test": "node --test test/",
     "serve": "node docker/serve.js"
   },
   "dependencies": {
