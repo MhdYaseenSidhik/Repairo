@@ -1,0 +1,65 @@
+<!doctype html><html><head><meta charset="utf-8"><title>diagram</title><style>html,body{margin:0;padding:16px;background:#ffffff;color:#111}svg{max-width:100%}</style></head><body><pre class="mermaid">flowchart TD
+  START([Contract signed / drawings frozen]) --> P0
+
+  subgraph P0["Phase 0 - Pre-construction (Wk 1-3)"]
+    A0["Site survey &amp; soil test"]
+    B0["Local body permits &amp; approvals"]
+    C0["Contractor tender &amp; award"]
+    D0["Working drawings &amp; BOQ freeze"]
+  end
+  P0 --> P1
+
+  subgraph P1["Phase 1 - Site prep (Wk 4-6)"]
+    A1["Clear &amp; level - protect existing trees"]
+    B1["Set out to survey / benchmarks"]
+    C1["Temp site office, store, water &amp; power"]
+    D1["Access road &amp; drainage"]
+  end
+  P1 --> P2
+
+  subgraph P2["Phase 2 - Foundation &amp; plinth (Wk 7-12)"]
+    A2["Excavate footings"]
+    B2["PCC + RCC footings &amp; columns"]
+    C2["Plinth beam - raised above flood line"]
+    D2["Backfill, anti-termite, plinth slab"]
+  end
+  P2 --> P3
+
+  subgraph P3["Phase 3 - Superstructure (Wk 13-22)"]
+    A3["RCC frame columns &amp; beams"]
+    B3["Laterite / brick walls"]
+    C3["Lintels, courtyard, door-window frames"]
+    D3["Roof slab / truss for tiled pitch"]
+  end
+  P3 --> P4
+
+  subgraph P4["Phase 4 - Roofing &amp; envelope (Wk 20-26)"]
+    A4["Sloped tiled roof + deep overhangs"]
+    B4["Waterproofing &amp; rainwater harvesting"]
+    C4["External plaster, doors &amp; windows"]
+  end
+  P4 --> P5
+
+  subgraph P5["Phase 5 - MEP &amp; finishing (Wk 24-38)"]
+    A5["Electrical &amp; plumbing rough-in"]
+    B5["Flooring - oxide / kota"]
+    C5["Plaster, paint, kitchen &amp; built-ins"]
+    D5["Sanitary, fixtures, verandah"]
+  end
+  P5 --> P6
+
+  subgraph P6["Phase 6 - External &amp; handover (Wk 36-42)"]
+    A6["Landscape, paths, car porch"]
+    B6["Snagging &amp; quality sign-off"]
+    C6["Cleaning, testing, handover"]
+  end
+  P6 --> DONE([Keys handed over])
+
+  classDef prep fill:#f5efe0,stroke:#a98a3f,color:#2e2712;
+  classDef found fill:#e8f0e3,stroke:#5b7a4a,color:#1e2b16;
+  classDef struct fill:#e3edf5,stroke:#3f6f97,color:#12212e;
+  classDef fin fill:#eef6ea,stroke:#6a8f57,color:#1e2b16;
+  class P0,P1 prep;
+  class P2,P3 found;
+  class P4 struct;
+  class P5,P6 fin;</pre><script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script><script>mermaid.initialize({ startOnLoad: true, theme: 'default', securityLevel: 'strict' });</script></body></html>
